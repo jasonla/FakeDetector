@@ -59,13 +59,23 @@
 ##############################################################################
 
 
+# import os
+# import sys
+# import subprocess
+# import re
+# import urllib2
+# import base64
+# from xmlrpclib import ServerProxy
+# import shlex
+# import traceback
+
 import os
 import sys
 import subprocess
 import re
-import urllib2
-import base64
-from xmlrpclib import ServerProxy
+import urllib.request, urllib.error, urllib.parse
+from xmlrpc.client import ServerProxy
+from base64 import b64encode
 import shlex
 import traceback
 
@@ -102,7 +112,7 @@ def start_check():
 			if os.environ.get('NZBPR_PPSTATUS_FAKEBAN') == None:
 				print('[WARNING] Download has media files and executables')
 			else:
-				print('[WARNING] Download contains banned extension ' + os.environ.get('NZBPR_PPSTATUS_FAKEBAN'))
+				print(('[WARNING] Download contains banned extension ' + os.environ.get('NZBPR_PPSTATUS_FAKEBAN')))
 		clean_up()
 		sys.exit(POSTPROCESS_SUCCESS)
 
@@ -130,7 +140,7 @@ def contains_media(list):
 def contains_banned_media(list):
 	for item in list:
 		if os.path.splitext(item)[1] in bannedMediaExtensions:
-			print('[INFO] Found file with banned extension: ' + item)
+			print(('[INFO] Found file with banned extension: ' + item))
 			return os.path.splitext(item)[1]
 		else:
 			continue
@@ -154,7 +164,7 @@ def contains_executable(list):
 		if os.path.split(name)[1] != "":
 			name = os.path.split(name)[1]
 		if ext == '.exe' or (ext in exExtensions and not name in allowNames):
-			print('[INFO] Found executable %s' % item)
+			print(('[INFO] Found executable %s' % item))
 			return True
 		else:
 			continue
@@ -172,10 +182,10 @@ def get_latest_file(dir):
 		temp_folder = os.path.dirname(tmp_file_name)
 		if not os.path.exists(temp_folder):
 			os.makedirs(temp_folder)
-			print('[DETAIL] Created folder ' + temp_folder)
+			print(('[DETAIL] Created folder ' + temp_folder))
 		with open(tmp_file_name, "w") as tmp_file:
 			tmp_file.write('')
-			print('[DETAIL] Created temp file ' + tmp_file_name)
+			print(('[DETAIL] Created temp file ' + tmp_file_name))
 		return os.listdir(dir)
 
 # Saves tested files so to not test again
@@ -212,7 +222,7 @@ def list_all_rars(dir):
 			try:
 				command = [unrar(), "vb", dir + '/' + file]
 				if verbose:
-					print('command: %s' % command)
+					print(('command: %s' % command))
 				proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 				out_tmp, err = proc.communicate()
 				out += out_tmp
@@ -220,7 +230,7 @@ def list_all_rars(dir):
 				if verbose:
 					print(out_tmp)
 			except Exception as e:
-				print('[ERROR] Failed %s: %s' % (file, e))
+				print(('[ERROR] Failed %s: %s' % (file, e)))
 				if verbose:
 					traceback.print_exc()
 		tested += file + '\n'
@@ -255,9 +265,9 @@ def detect_fake(name, dir):
 		return True
 	banned_ext = contains_banned_media(filelist)
 	if banned_ext != '':
-		print('[WARNING] Download contains banned extension ' + banned_ext)
+		print(('[WARNING] Download contains banned extension ' + banned_ext))
 		# Save details about banned extension in pp-parameter "NZBPR_PPSTATUS_FAKEBAN"
-		print('[NZB] NZBPR_PPSTATUS_FAKEBAN=' + banned_ext)
+		print(('[NZB] NZBPR_PPSTATUS_FAKEBAN=' + banned_ext))
 		return True
 	return False
 
@@ -292,13 +302,13 @@ def call_nzbget_direct(url_command):
 
 	# Building http-URL to call the method
 	httpUrl = 'http://%s:%s/jsonrpc/%s' % (host, port, url_command);
-	request = urllib2.Request(httpUrl)
+	request = urllib.request.Request(httpUrl)
 
 	base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
 	request.add_header("Authorization", "Basic %s" % base64string)
 
 	# Load data from NZBGet
-	response = urllib2.urlopen(request)
+	response = urllib.request.urlopen(request)
 	data = response.read()
 
 	# "data" is a JSON raw-string
@@ -338,7 +348,7 @@ def sort_inner_files():
 
 	# Move the last rar-file to the top of file list
 	if (file_id):
-		print('[INFO] Moving last rar-file to the top: %s' % file_name)
+		print(('[INFO] Moving last rar-file to the top: %s' % file_name))
 		# Create remote server object
 		nzbget = connect_to_nzbget()
 		# Using RPC-method "editqueue" of XML-RPC-object "nzbget".
@@ -373,10 +383,10 @@ def clean_up():
 	for temp_id in old_temp_files:
 		temp_file = temp_folder + '/' + str(temp_id)
 		try:
-			print('[DETAIL] Removing temp file ' + temp_file)
+			print(('[DETAIL] Removing temp file ' + temp_file))
 			os.remove(temp_file)
 		except:
-			print('[ERROR] Could not remove temp file ' + temp_file)
+			print(('[ERROR] Could not remove temp file ' + temp_file))
 
 # Script body
 def main():
@@ -413,14 +423,14 @@ def main():
 	if os.environ.get('NZBNA_EVENT') == 'NZB_ADDED' or \
 			(os.environ.get('NZBNA_EVENT') == 'FILE_DOWNLOADED' and \
 			os.environ.get('NZBPR_FAKEDETECTOR_SORTED') != 'yes'):
-		print('[INFO] Sorting inner files for earlier fake detection for %s' % NzbName)
+		print(('[INFO] Sorting inner files for earlier fake detection for %s' % NzbName))
 		sys.stdout.flush()
 		sort_inner_files()
 		print('[NZB] NZBPR_FAKEDETECTOR_SORTED=yes')
 		if os.environ.get('NZBNA_EVENT') == 'NZB_ADDED':
 			sys.exit(POSTPROCESS_NONE)
 
-	print('[DETAIL] Detecting fake for %s' % NzbName)
+	print(('[DETAIL] Detecting fake for %s' % NzbName))
 	sys.stdout.flush()
 
 	if detect_fake(NzbName, Directory):
@@ -446,7 +456,7 @@ def main():
 		if os.environ.get('NZBPR_PPSTATUS_FAKE') == 'yes':
 			print('[NZB] NZBPR_PPSTATUS_FAKE=')
 
-	print('[DETAIL] Detecting completed for %s' % NzbName)
+	print(('[DETAIL] Detecting completed for %s' % NzbName))
 	sys.stdout.flush()
 
 	# Remove temp files in PP
